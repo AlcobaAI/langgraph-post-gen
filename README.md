@@ -406,4 +406,3 @@ Comment out RAG calls in `app/tools/rag_tools.py` and run the app container stan
 ---
 
 That's it! You're ready to generate platform-ready content.
-```
