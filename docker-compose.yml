@@ -1,0 +1,57 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      RAG_SERVICE_URL: http://rag-service:8100
+    volumes:
+      - ./workflow_tests/outputs:/app/workflow_tests/outputs
+    ports:
+      - "8000:8000"
+    depends_on:
+      rag-service:
+        condition: service_healthy
+
+  rag-service:
+    build:
+      context: .
+      dockerfile: rag_service/Dockerfile
+    environment:
+      RAG_RETRIEVER: vanilla_bge
+      RAG_COLLECTION_NAME: demo_documents
+      RAG_QDRANT_URL: http://qdrant:6333
+      RAG_DOCUMENTS_DIR: /app/documents
+      RAG_INDEX_DIR: /app/indices
+      RAG_CHUNK_SIZE: "1200"
+      RAG_CHUNK_OVERLAP: "200"
+      HF_HOME: /root/.cache/huggingface
+      HUGGINGFACE_HUB_CACHE: /root/.cache/huggingface
+    volumes:
+      - ./documents:/app/documents
+      - rag_indices:/app/indices
+      - hf_cache:/root/.cache/huggingface
+    ports:
+      - "8100:8100"
+    depends_on:
+      qdrant:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:v1.14.1
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+
+volumes:
+  qdrant_storage:
+  rag_indices:
+  hf_cache:
